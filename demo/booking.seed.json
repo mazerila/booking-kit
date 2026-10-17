@@ -1,0 +1,124 @@
+{
+  "settings": {
+    "businessName": "Studio Lumière",
+    "timezone": "Europe/Paris",
+    "defaultLocale": "fr",
+    "locales": ["fr", "en"],
+    "currency": "EUR",
+    "contact": { "email": "contact@example.com", "phone": "06 12 34 56 78" },
+    "base": { "address": "Place Saint-Jean, 77000 Melun", "lat": 48.5397, "lng": 2.6602 },
+    "zone": {
+      "mode": "radius",
+      "radiusKm": 20,
+      "postcodes": [],
+      "outOfZone": "request",
+      "message": { "fr": "Au-delà de 20 km, des frais de déplacement peuvent s'appliquer.", "en": "Beyond 20 km, a travel fee may apply." }
+    },
+    "rules": { "slotStepMin": 30, "minNoticeMin": 120, "maxAdvanceDays": 60, "maxPerDay": 0, "travelBufferMin": 30 },
+    "policies": {
+      "confirmation": "instant",
+      "allowClientCancel": true,
+      "allowClientReschedule": true,
+      "changeUntilHours": 24,
+      "text": {
+        "fr": "Annulation ou modification gratuite jusqu'à 24 h avant le rendez-vous. Règlement sur place.",
+        "en": "Free cancellation or change up to 24 hours before. Payment on site."
+      }
+    },
+    "reminders": { "enabled": true, "hoursBefore": 24 },
+    "notifyEmails": ["demo@example.com"],
+    "fields": [
+      {
+        "id": "pregnancyWeek",
+        "type": "number",
+        "label": { "fr": "Semaine de grossesse", "en": "Pregnancy week" },
+        "help": { "fr": "À partir de la 14e semaine, avec l'accord de votre sage-femme.", "en": "From week 14, with your midwife's approval." },
+        "required": true,
+        "min": 14,
+        "max": 41,
+        "categoryIds": ["maternity"]
+      },
+      {
+        "id": "source",
+        "type": "select",
+        "label": { "fr": "Comment m'avez-vous connue ?", "en": "How did you hear about me?" },
+        "required": false,
+        "options": [
+          { "value": "google", "label": { "fr": "Google", "en": "Google" } },
+          { "value": "instagram", "label": { "fr": "Instagram", "en": "Instagram" } },
+          { "value": "friend", "label": { "fr": "Bouche-à-oreille", "en": "Word of mouth" } }
+        ]
+      },
+      {
+        "id": "terms",
+        "type": "checkbox",
+        "label": { "fr": "J'accepte les [conditions générales](/cgv/).", "en": "I accept the [terms and conditions](/en/terms/)." },
+        "required": true
+      }
+    ]
+  },
+  "weekly": {
+    "mon": [{ "start": "09:00", "end": "12:30" }, { "start": "14:00", "end": "19:00" }],
+    "tue": [{ "start": "09:00", "end": "12:30" }, { "start": "14:00", "end": "19:00" }],
+    "wed": [{ "start": "09:00", "end": "12:30" }],
+    "thu": [{ "start": "09:00", "end": "12:30" }, { "start": "14:00", "end": "19:00" }],
+    "fri": [{ "start": "09:00", "end": "12:30" }, { "start": "14:00", "end": "18:00" }],
+    "sat": [{ "start": "09:00", "end": "13:00" }],
+    "sun": []
+  },
+  "categories": [
+    { "id": "body", "name": { "fr": "Corps", "en": "Body" } },
+    { "id": "face", "name": { "fr": "Visage", "en": "Face" } },
+    { "id": "maternity", "name": { "fr": "Maternité", "en": "Maternity" } }
+  ],
+  "services": [
+    {
+      "id": "drainage-body",
+      "name": { "fr": "Drainage lymphatique corps", "en": "Body lymphatic drainage" },
+      "description": { "fr": "Jambes légères, ventre dégonflé, détente profonde.", "en": "Lighter legs, a flatter tummy, deep relaxation." },
+      "categoryId": "body",
+      "durationMin": 90,
+      "price": 120,
+      "wasPrice": 130,
+      "badge": { "fr": "Offre découverte", "en": "Discovery offer" },
+      "location": "home"
+    },
+    {
+      "id": "legs",
+      "name": { "fr": "Jambes légères", "en": "Light legs" },
+      "description": { "fr": "Un soin ciblé pour les jambes lourdes.", "en": "A targeted treatment for heavy legs." },
+      "categoryId": "body",
+      "durationMin": 60,
+      "price": 90,
+      "location": "home"
+    },
+    {
+      "id": "facial",
+      "name": { "fr": "Soin visage éclat", "en": "Radiance facial" },
+      "description": { "fr": "Drainage du visage, teint lumineux.", "en": "Facial drainage for a glowing complexion." },
+      "categoryId": "face",
+      "durationMin": 45,
+      "price": 70,
+      "bufferAfterMin": 15,
+      "location": "studio"
+    },
+    {
+      "id": "prenatal",
+      "name": { "fr": "Drainage prénatal", "en": "Prenatal drainage" },
+      "description": { "fr": "Adapté à la grossesse, dès 14 semaines.", "en": "Adapted to pregnancy, from week 14." },
+      "categoryId": "maternity",
+      "durationMin": 75,
+      "price": 100,
+      "location": "home"
+    },
+    {
+      "id": "call",
+      "name": { "fr": "Appel découverte (visio)", "en": "Discovery call (video)" },
+      "categoryId": "face",
+      "durationMin": 20,
+      "price": 0,
+      "location": "online"
+    }
+  ],
+  "admins": ["demo@example.com"]
+}

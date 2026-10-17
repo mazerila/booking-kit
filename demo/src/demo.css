@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+}
+
+.demo {
+  min-height: 100vh;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.demo--rose {
+  background: #f9eeea;
+  color: #2e2c2f;
+  --bk-sticky-bg: #f9eeea;
+}
+
+.demo--slate {
+  background: #f1f5f9;
+  color: #0f172a;
+  --bk-sticky-bg: #f1f5f9;
+}
+
+.demo__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+
+.demo__logo {
+  color: inherit;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.demo__bar nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.demo__bar a {
+  color: inherit;
+}
+
+.demo__main {
+  padding: 1rem 16px 4rem;
+}

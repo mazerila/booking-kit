@@ -1,0 +1,39 @@
+{
+  "hosting": {
+    "public": "out",
+    "cleanUrls": true,
+    "trailingSlash": true,
+    "rewrites": [
+      {
+        "source": "/api/booking/**",
+        "function": { "functionId": "bookingApi", "region": "europe-west1" }
+      }
+    ],
+    "headers": [
+      {
+        "source": "/admin/**",
+        "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", ".git", "*.local", "src"],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8085 },
+    "functions": { "port": 5001 },
+    "hosting": { "port": 5050 },
+    "ui": { "enabled": true }
+  }
+}

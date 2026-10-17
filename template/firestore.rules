@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Booking module. The public site never touches Firestore directly: all public
+// reads and writes go through the bookingApi function (Admin SDK, bypasses rules).
+// Admins (e-mails listed in bookingConfig/admins) use the admin app directly.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower()
+          in get(/databases/$(database)/documents/bookingConfig/admins).data.emails;
+    }
+
+    // The admin list itself can only be changed with the setup script or the console.
+    match /bookingConfig/{doc} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && doc != "admins";
+    }
+
+    match /services/{id} { allow read, write: if isAdmin(); }
+    match /categories/{id} { allow read, write: if isAdmin(); }
+    match /exceptions/{id} { allow read, write: if isAdmin(); }
+    match /blocks/{id} { allow read, write: if isAdmin(); }
+    match /clients/{id} { allow read, write: if isAdmin(); }
+
+    // Bookings are created, moved and cancelled through the API (availability
+    // checks, e-mails). Admins can only edit their private notes directly.
+    match /bookings/{id} {
+      allow read: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["notes", "updatedAt"]);
+    }
+
+    match /mailLog/{id} { allow read: if isAdmin(); }
+    match /bookingLocks/{id} { allow read, write: if false; }
+  }
+}

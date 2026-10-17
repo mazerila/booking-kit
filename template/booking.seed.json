@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "businessName": "Business name",
+    "timezone": "Europe/Paris",
+    "defaultLocale": "fr",
+    "locales": ["fr", "en"],
+    "currency": "EUR",
+    "contact": { "email": "contact@example.fr", "phone": "06 00 00 00 00" },
+    "base": { "address": "1 place de la Mairie, 77000 Melun" },
+    "zone": { "mode": "none", "radiusKm": 20, "postcodes": [], "outOfZone": "request" },
+    "rules": { "slotStepMin": 30, "minNoticeMin": 720, "maxAdvanceDays": 60, "maxPerDay": 0, "travelBufferMin": 0 },
+    "policies": {
+      "confirmation": "instant",
+      "allowClientCancel": true,
+      "allowClientReschedule": true,
+      "changeUntilHours": 24,
+      "text": { "fr": "Annulation gratuite jusqu'à 24 h avant.", "en": "Free cancellation up to 24 hours before." }
+    },
+    "reminders": { "enabled": true, "hoursBefore": 24 },
+    "notifyEmails": ["owner@example.fr"],
+    "fields": [
+      {
+        "id": "terms",
+        "type": "checkbox",
+        "label": { "fr": "J'accepte les [conditions générales](/cgv/).", "en": "I accept the [terms](/en/terms/)." },
+        "required": true
+      }
+    ]
+  },
+  "weekly": {
+    "mon": [{ "start": "09:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
+    "tue": [{ "start": "09:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
+    "wed": [{ "start": "09:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
+    "thu": [{ "start": "09:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
+    "fri": [{ "start": "09:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
+    "sat": [],
+    "sun": []
+  },
+  "categories": [{ "id": "main", "name": { "fr": "Prestations", "en": "Services" } }],
+  "services": [
+    {
+      "id": "first",
+      "name": { "fr": "Première séance", "en": "First session" },
+      "description": { "fr": "Bilan et premier soin.", "en": "Assessment and first treatment." },
+      "categoryId": "main",
+      "durationMin": 60,
+      "price": 60,
+      "location": "studio"
+    }
+  ],
+  "admins": ["owner@example.fr"]
+}
