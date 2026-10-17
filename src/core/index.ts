@@ -7,3 +7,5 @@ export * from "./format.js";
 export * from "./ics.js";
 export * from "./email.js";
 export * from "./defaults.js";
+export * from "./theme.js";
+export * from "./calendar.js";

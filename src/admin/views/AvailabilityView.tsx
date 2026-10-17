@@ -2,6 +2,7 @@
 import { addDoc, collection, deleteDoc, doc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { COL, CONFIG_DOC, localDateOf, WEEKDAYS, zonedTime, type BookingRules, type TimeRange, type WeeklyHours } from "../../core/index.js";
+import { HelpLink } from "./HelpView.js";
 import { useAdmin, useBlocks, useExceptions } from "../data.js";
 import { ConfirmButton, Field, Section, Toggle, useFormat } from "../ui.js";
 
@@ -66,7 +67,10 @@ export function AvailabilityView() {
   return (
     <div className="bka-view">
       <div className="bka-view__head">
-        <h1>{t.navAvailability}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navAvailability}</h1>
+          <HelpLink section="availability" />
+        </div>
       </div>
 
       <Section

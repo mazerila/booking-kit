@@ -8,7 +8,10 @@ import { createHash, randomBytes } from "node:crypto";
 import * as logger from "firebase-functions/logger";
 import {
   ACTIVE_STATUSES,
+  appointmentEvent,
   buildIcs,
+  calendarLinks,
+  resolveAppearance,
   checkZone,
   COL,
   collides,
@@ -52,6 +55,8 @@ export type Ctx = {
   /** Path of the manage page for a locale, e.g. "/rdv/" or "/en/appointment/". */
   managePath: (locale: string) => string;
   adminPath: string;
+  /** Public path of the API (Hosting rewrite), for links in e-mails. Default "/api/booking". */
+  apiPath?: string;
   brand?: { color?: string; logoUrl?: string };
   geocoder?: Geocoder;
   now: () => number;
@@ -70,6 +75,26 @@ export const newToken = () => randomBytes(24).toString("base64url");
 export function manageUrl(ctx: Ctx, b: Booking) {
   if (!b.manageToken) return undefined;
   return `${ctx.siteUrl.replace(/\/$/, "")}${ctx.managePath(b.locale)}?t=${b.manageToken}`;
+}
+
+const origin = (ctx: Ctx) => ctx.siteUrl.replace(/\/$/, "");
+
+/** Direct download of the booking's calendar file (link in e-mails). */
+export function icsUrl(ctx: Ctx, b: Booking) {
+  return b.manageToken ? `${origin(ctx)}${ctx.apiPath ?? "/api/booking"}/manage/ics?t=${b.manageToken}` : undefined;
+}
+
+/** The client's calendar event for a booking. */
+export function clientEvent(ctx: Ctx, settings: Settings, b: Booking, locale = b.locale) {
+  return appointmentEvent(b, {
+    businessName: settings.businessName,
+    locale,
+    defaultLocale: settings.defaultLocale,
+    where: publicView(b, settings, ctx.now()).where,
+    manageUrl: manageUrl(ctx, b),
+    phone: settings.contact.phone,
+    email: settings.contact.email,
+  });
 }
 
 export function publicView(b: Booking, settings: Settings, now: number): PublicBooking {
@@ -100,23 +125,26 @@ export async function notify(
   kinds: EmailKind[],
   extra: { previousStart?: string } = {},
 ) {
+  // The look chosen in the admin colours the e-mails too, unless the code sets a brand colour.
+  const brand = { ...ctx.brand, color: ctx.brand?.color ?? resolveAppearance(settings.appearance)?.primary };
   const tasks = kinds.map(async (kind) => {
     const admin = kind.startsWith("admin");
     const to = admin ? settings.notifyEmails : b.client.email ? [b.client.email] : [];
     if (!to.length) return;
     const locale = admin ? settings.defaultLocale : b.locale;
+    const event = clientEvent(ctx, settings, b, locale);
     const mail = renderEmail({
       kind,
       locale,
       settings,
       booking: b,
       manageUrl: manageUrl(ctx, b),
-      adminUrl: `${ctx.siteUrl.replace(/\/$/, "")}${ctx.adminPath}#/booking/${b.id}`,
+      adminUrl: `${origin(ctx)}${ctx.adminPath}#/booking/${b.id}`,
       previousStart: extra.previousStart,
-      brand: ctx.brand,
+      brand,
+      calendarLinks: calendarLinks(event, icsUrl(ctx, b)),
     });
-    const withIcs = kind === "confirmed" || kind === "rescheduled" || kind === "cancelled";
-    const where = publicView(b, settings, ctx.now()).where;
+    const withIcs = !admin && (kind === "confirmed" || kind === "rescheduled" || kind === "cancelled");
     await sendMail(
       ctx.mailer,
       {
@@ -128,19 +156,7 @@ export async function notify(
               {
                 filename: "rendez-vous.ics",
                 contentType: "text/calendar",
-                content: buildIcs(
-                  {
-                    uid: `${b.id}@booking`,
-                    start: Date.parse(b.start),
-                    end: Date.parse(b.end),
-                    title: `${pick(b.service.name, locale, settings.defaultLocale)} — ${settings.businessName}`,
-                    location: where,
-                    organizer: { name: settings.businessName, email: settings.contact.email },
-                    status: kind === "cancelled" ? "CANCELLED" : "CONFIRMED",
-                    sequence: b.history.length,
-                  },
-                  ctx.now(),
-                ),
+                content: buildIcs({ ...event, status: kind === "cancelled" ? "CANCELLED" : "CONFIRMED", sequence: b.history.length }, ctx.now()),
               },
             ]
           : undefined,

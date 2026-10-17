@@ -34,6 +34,8 @@
   box-sizing: border-box;
   max-width: var(--bk-max-width);
   margin-inline: auto;
+  padding: var(--bk-pad, 0);
+  border-radius: var(--bk-radius);
   background: var(--bk-bg);
   color: var(--bk-text);
   font-family: var(--bk-font);
@@ -882,4 +884,22 @@ textarea.bk-input {
 
 .bk-contact {
   font-size: 0.92em;
+}
+
+.bk-cal-links {
+  padding: var(--bk-gap);
+  border: 1px dashed var(--bk-border);
+  border-radius: var(--bk-radius);
+}
+
+.bk-cal-links .bk-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bk-cal-links__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
 }

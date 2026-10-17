@@ -19,12 +19,15 @@ import {
   type User,
 } from "firebase/auth";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { fill } from "../core/index.js";
+import { fill, resolveAppearance } from "../core/index.js";
 import { BookingPanel } from "./BookingPanel.js";
 import { AdminCtx, createAdminApi, initFirebase, useBusinessData, type AdminContext, type EmulatorConfig } from "./data.js";
 import { NewBooking, type NewBookingPrefill } from "./NewBooking.js";
+import type { HelpSection } from "./help.js";
 import { ADMIN_TEXTS, type AdminTexts } from "./texts.js";
 import { AgendaView } from "./views/AgendaView.js";
+import { AppearanceView } from "./views/AppearanceView.js";
+import { HelpView } from "./views/HelpView.js";
 import { AvailabilityView } from "./views/AvailabilityView.js";
 import { CalendarView } from "./views/CalendarView.js";
 import { ClientsView } from "./views/ClientsView.js";
@@ -46,11 +49,19 @@ export type AdminAppProps = {
   emulators?: EmulatorConfig;
   /** Country code for WhatsApp links from national numbers. Default "33" (France). */
   phoneCountryCode?: string;
+  /** Public booking page, for "View on site" in Appearance. */
+  siteBookingUrl?: string;
+  /** Who the provider contacts for help (shown on the Help page). */
+  support?: { name: string; email?: string; phone?: string };
+  /** Extra Help sections per locale (client-specific instructions), added after the built-in ones. */
+  extraHelp?: Record<string, HelpSection[]>;
   className?: string;
 };
 
-type Route = "agenda" | "calendar" | "clients" | "services" | "availability" | "settings";
-const ROUTES: Route[] = ["agenda", "calendar", "clients", "services", "availability", "settings"];
+type Route = "agenda" | "calendar" | "clients" | "services" | "availability" | "appearance" | "settings" | "help";
+const ROUTES: Route[] = ["agenda", "calendar", "clients", "services", "availability", "appearance", "settings", "help"];
+/** Shown in the phone's bottom bar; the rest go under "More". */
+const MOBILE_MAIN = 4;
 const EMAIL_KEY = "booking-admin-email";
 
 function themeStyle(theme: AdminTheme = {}): CSSProperties {
@@ -66,10 +77,11 @@ function themeStyle(theme: AdminTheme = {}): CSSProperties {
   return Object.fromEntries(Object.entries(map).filter(([, v]) => v)) as CSSProperties;
 }
 
-function parseHash(): { route: Route; booking?: string } {
+function parseHash(): { route: Route; booking?: string; section?: string } {
   const h = typeof window === "undefined" ? "" : window.location.hash.replace(/^#\/?/, "");
   const [first, second] = h.split("/");
   if (first === "booking" && second) return { route: "agenda", booking: second };
+  if (first === "help") return { route: "help", section: second || undefined };
   return { route: ROUTES.includes(first as Route) ? (first as Route) : "agenda" };
 }
 
@@ -100,9 +112,12 @@ export function AdminApp(props: AdminAppProps) {
   }, [user, api]);
 
   const data = useBusinessData(db, !!allowed);
+  // Without a theme prop, the admin takes its main colours from the Appearance chosen for the site.
+  const chosen = resolveAppearance(data.settings?.appearance);
+  const adminTheme: AdminTheme = props.theme ?? (chosen?.primary ? { primary: chosen.primary, onPrimary: chosen.onPrimary, accent: chosen.accent } : {});
 
   return (
-    <div className={`bka-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(props.theme)} lang={locale}>
+    <div className={`bka-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(adminTheme)} lang={locale}>
       {user === undefined || (user && allowed === undefined) ? (
         <p className="bka-center bka-muted">{t.loading}</p>
       ) : !user ? (
@@ -129,6 +144,10 @@ export function AdminApp(props: AdminAppProps) {
             services: data.services,
             categories: data.categories,
             phoneCountryCode: props.phoneCountryCode ?? "33",
+            apiBase: props.apiBase ?? "/api/booking",
+            siteBookingUrl: props.siteBookingUrl,
+            support: props.support,
+            extraHelp: props.extraHelp,
           }}
           user={user}
         />
@@ -223,13 +242,17 @@ type Toast = { id: number; message: string; kind: "success" | "error" };
 
 function Shell({ base, user }: { base: Omit<AdminContext, "openBooking" | "newBooking" | "toast">; user: User }) {
   const { t, auth, settings } = base;
-  const [{ route, booking }, setNav] = useState(parseHash);
+  const [{ route, booking, section }, setNav] = useState(parseHash);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [prefill, setPrefill] = useState<NewBookingPrefill | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
 
   useEffect(() => {
-    const onHash = () => setNav(parseHash());
+    const onHash = () => {
+      setNav(parseHash());
+      setMoreOpen(false);
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -253,7 +276,9 @@ function Shell({ base, user }: { base: Omit<AdminContext, "openBooking" | "newBo
     clients: t.navClients,
     services: t.navServices,
     availability: t.navAvailability,
+    appearance: t.navAppearance,
     settings: t.navSettings,
+    help: t.navHelp,
   };
   const icons: Record<Route, string> = {
     agenda: "M4 6h16M4 12h16M4 18h10",
@@ -261,6 +286,8 @@ function Shell({ base, user }: { base: Omit<AdminContext, "openBooking" | "newBo
     clients: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
     services: "M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8ZM7 7h.01",
     availability: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+    appearance: "M12 21a9 9 0 1 1 9-9c0 1.7-1.3 3-3 3h-1.8a1.7 1.7 0 0 0-1.2 2.9 1.7 1.7 0 0 1-1.2 3.1H12ZM7.5 10.5h.01M10.5 7h.01M15 7.5h.01",
+    help: "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
     settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z",
   };
 
@@ -273,26 +300,65 @@ function Shell({ base, user }: { base: Omit<AdminContext, "openBooking" | "newBo
             <span className="bka-muted">{user.email}</span>
           </div>
           <nav className="bka-nav" aria-label={t.appTitle}>
-            {ROUTES.map((r) => (
-              <a key={r} href={`#/${r}`} className={`bka-nav__item${route === r ? " bka-nav__item--on" : ""}`} aria-current={route === r ? "page" : undefined}>
+            {ROUTES.map((r, i) => (
+              <a
+                key={r}
+                href={`#/${r}`}
+                className={`bka-nav__item${route === r ? " bka-nav__item--on" : ""}${i >= MOBILE_MAIN ? " bka-nav__item--extra" : ""}`}
+                aria-current={route === r ? "page" : undefined}
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={icons[r]} />
                 </svg>
                 <span>{labels[r]}</span>
               </a>
             ))}
+            <button
+              type="button"
+              className={`bka-nav__item bka-nav__more${ROUTES.indexOf(route) >= MOBILE_MAIN ? " bka-nav__item--on" : ""}`}
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((o) => !o)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" />
+              </svg>
+              <span>{t.navMore}</span>
+            </button>
           </nav>
           <button type="button" className="bka-link bka-signout" onClick={() => signOut(auth)}>
             {t.signOut}
           </button>
         </aside>
+        {moreOpen && (
+          <div className="bka-moresheet">
+            {ROUTES.slice(MOBILE_MAIN).map((r) => (
+              <a key={r} href={`#/${r}`} aria-current={route === r ? "page" : undefined} onClick={() => setMoreOpen(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d={icons[r]} />
+                </svg>
+                {labels[r]}
+              </a>
+            ))}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                void signOut(auth);
+              }}
+            >
+              {t.signOut}
+            </a>
+          </div>
+        )}
         <main className="bka-main">
           {route === "agenda" && <AgendaView />}
           {route === "calendar" && <CalendarView />}
           {route === "clients" && <ClientsView />}
           {route === "services" && <ServicesView />}
           {route === "availability" && <AvailabilityView />}
+          {route === "appearance" && <AppearanceView />}
           {route === "settings" && <SettingsView />}
+          {route === "help" && <HelpView section={section} />}
         </main>
       </div>
       {prefill && <NewBooking prefill={prefill} onClose={() => setPrefill(null)} />}

@@ -6,6 +6,11 @@ fields, texts, services, rules) lives in configuration, not in code.
 
 Legend: **[v1]** must have · **[v1.1]** soon after · **[later]** optional / per client
 
+**Status (v0.2.0):** every [v1] item is built, plus travel time between home visits, CSV export,
+appearance editing, calendar sync for the provider and an in-app help guide. Not built yet:
+packages / multi-session cures, add-ons, Google Calendar two-way sync, SMS, statistics,
+client accounts.
+
 ---
 
 ## 1. Client side (public booking)
@@ -24,7 +29,7 @@ Legend: **[v1]** must have · **[v1.1]** soon after · **[later]** optional / pe
 - [v1] Calendar shows days with/without availability at a glance; "next available" shortcut
 - [v1] Summary before confirmation (service, date, duration, price, address)
 - [v1] Two confirmation modes, configurable: **instant** or **request → provider approves**
-- [v1] Confirmation screen + "add to calendar" (Google / Apple / Outlook .ics)
+- [v1] Confirmation screen + "add to calendar" (Google, Outlook, Apple .ics), also on the manage page and in the e-mails
 
 ### Home-visit support (needed for Leyaline)
 - [v1] Address field with zone check (postal code list or radius in km from a base address)
@@ -67,7 +72,8 @@ Legend: **[v1]** must have · **[v1.1]** soon after · **[later]** optional / pe
 - [v1] Approve / decline pending requests (client is notified automatically)
 - [v1] Create a booking manually (phone/WhatsApp bookings), edit, move, cancel
 - [v1] E-mail notification to the provider on new / cancelled / changed booking
-- [v1.1] Two-way Google Calendar sync (personal events block slots; bookings appear in her calendar)
+- [v1] Private calendar feed: bookings appear in her Google / iPhone / Outlook calendar (one-way)
+- [later] Two-way Google Calendar sync (personal events block slots)
 
 ### Availability
 - [v1] Weekly opening hours, several ranges per day (e.g. 9–12, 14–19)
@@ -82,6 +88,14 @@ Legend: **[v1]** must have · **[v1.1]** soon after · **[later]** optional / pe
 - [v1] Search and filter bookings / clients
 - [v1.1] CSV export
 - [v1.1] Package balance per client (3 of 5 sessions used)
+
+### Appearance
+- [v1] Style presets (website design, classic, powder pink, sage, sand, ocean, night)
+- [v1] Custom colors, fonts, corners, button shape, text size, spacing, with a live preview
+- [v1] Applies to the booking and manage pages, the e-mail buttons and the admin colors
+
+### Help
+- [v1] Built-in admin guide in French and English, searchable, linked from each screen
 
 ### Settings
 - [v1] Business info (name, address, base location, zone, contact)

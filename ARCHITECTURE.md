@@ -96,19 +96,32 @@ read or write collections, via rules.
   address via the free French BAN API, with a fallback). Travel buffer is v1.1.
 - **Calendar files:** `.ics` attached to e-mails and offered on the confirmation screen.
 
-## 6. Theming
+## 6. Theming, calendars, help
+
+- **Theme layers:** stylesheet defaults → `theme` prop (developer) → Appearance chosen in the
+  admin (`Settings.appearance`: preset + custom values, resolved by `resolveAppearance`, sent in
+  `/config`). The "site" preset adds nothing. Google fonts used by the theme are loaded by the
+  widget.
+- **Calendars:** `core/calendar.ts` builds the client's event (manage link included) and the
+  provider's event. Clients get Google / Outlook / `.ics` links on the confirmation and manage
+  pages, and in the e-mails, plus an attached invitation. The provider subscribes to
+  `/feed.ics?k=<secret>` (key in `bookingConfig/feed`).
+- **Help:** the admin guide is data (`admin/help.ts`, fr + en), rendered by the Help screen and
+  linked from each screen's "? Help" button.
+
+### Theme object
 
 ```ts
 theme: {
-  colors: { primary: "#2b2b2e", accent: "#d9a5a0", bg: "#fff", surface: "#faf6f4", text: "#222", muted: "#777" },
-  font: { body: "var(--font-body)", heading: "var(--font-heading)" },
-  radius: "12px",
+  primary: "#2b2b2e", accent: "#d9a5a0", surface: "#faf6f4", text: "#222", muted: "#777",
+  fontFamily: "var(--font-body)", headingFontFamily: "var(--font-heading)",
+  radius: "12px", buttonRadius: "999px",
   density: "comfortable",   // or "compact"
 }
 ```
 These become `--bk-*` CSS variables on the widget root, so the module's CSS never needs editing.
 
-## 7. Build order
+## 7. Build order (done in v0.1.0)
 
 1. `core`: types, config schema, slot engine + tests
 2. `functions`: availability, book, manage, e-mails (emulators)

@@ -3,7 +3,8 @@
  *   /        booking widget
  *   /rdv/    manage-booking page (link in the e-mails)
  *   /admin/  back-office
- * Try the theme switcher to see the same module styled for two different sites.
+ * The header's theme switcher is the developer's theme (code); the admin's
+ * Appearance page overrides it for the provider (try "Nuit").
  */
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -46,7 +47,9 @@ function Site() {
   const path = window.location.pathname;
 
   if (path.startsWith("/admin")) {
-    return <AdminApp firebase={firebase} emulators={emulators} locale={locale} theme={{ primary: "#2e2c2f", accent: "#c98b86" }} />;
+    // Language of the admin: ?lang=en, otherwise French.
+    const adminLocale = new URLSearchParams(window.location.search).get("lang") === "en" ? "en" : "fr";
+    return <AdminApp firebase={firebase} emulators={emulators} locale={adminLocale} siteBookingUrl="/" />;
   }
 
   return (

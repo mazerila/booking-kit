@@ -1,4 +1,7 @@
-/** Shared settings of the booking pages (look, API path, Firebase web config). */
+/**
+ * Shared settings of the booking pages. The theme here is the site's default look; the
+ * provider can override it in the admin (Appearance), unless `useAdminTheme={false}`.
+ */
 import type { BookingTheme } from "@mazerila/booking-kit/react";
 
 export const bookingTheme: BookingTheme = {

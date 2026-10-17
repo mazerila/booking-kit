@@ -2,7 +2,8 @@
 import { doc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { COL, CONFIG_DOC, defaultEmailText, isValidTimeZone, type EmailKind, type FieldDef, type FieldType, type Settings } from "../../core/index.js";
-import { useAdmin } from "../data.js";
+import { useAdmin, useFeedKey } from "../data.js";
+import { HelpLink } from "./HelpView.js";
 import { ConfirmButton, Field, LocalizedInput, Section, Toggle, useFormat } from "../ui.js";
 
 const list = (s: string) =>
@@ -73,8 +74,13 @@ export function SettingsView() {
   return (
     <div className="bka-view">
       <div className="bka-view__head">
-        <h1>{t.navSettings}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navSettings}</h1>
+          <HelpLink section="settings" />
+        </div>
       </div>
+
+      <CalendarSync />
 
       <Section title={t.business}>
         <div className="bka-grid2">
@@ -395,5 +401,65 @@ function EmailTextsEditor({ value: s, onChange }: { value: Settings; onChange: (
         </details>
       ))}
     </div>
+  );
+}
+
+const randomKey = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+/** Private iCalendar feed of the bookings, to subscribe from Google / Apple / Outlook. */
+function CalendarSync() {
+  const { t, db, toast, apiBase, settings } = useAdmin();
+  const key = useFeedKey();
+  const create = () =>
+    setDoc(doc(db, COL.config, CONFIG_DOC.feed), { key: randomKey(), createdAt: new Date().toISOString() }).catch(() => toast(t.errorGeneric, "error"));
+
+  const base = typeof window !== "undefined" ? new URL(apiBase.replace(/\/$/, ""), window.location.href).href : apiBase;
+  const url = key ? `${base}/feed.ics?k=${key}` : "";
+  const webcal = url.replace(/^https?:/, "webcal:");
+  const local = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(url);
+  const name = encodeURIComponent(settings.businessName || t.appTitle);
+
+  return (
+    <Section title={t.syncTitle} help={t.syncHelp} actions={<HelpLink section="sync" />}>
+      {key === undefined ? (
+        <p className="bka-muted">{t.loading}</p>
+      ) : !key ? (
+        <button type="button" className="bka-btn bka-btn--primary" onClick={create}>
+          {t.syncCreate}
+        </button>
+      ) : (
+        <div className="bka-form">
+          <div className="bka-actions">
+            <a className="bka-btn" href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">
+              {t.syncGoogle}
+            </a>
+            <a className="bka-btn" href={webcal}>
+              {t.syncApple}
+            </a>
+            <a className="bka-btn" href={`https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(url)}&name=${name}`} target="_blank" rel="noreferrer">
+              {t.syncOutlook}
+            </a>
+          </div>
+          <div className="bka-inline">
+            <input className="bka-input" readOnly value={url} onFocus={(e) => e.target.select()} aria-label={t.syncTitle} />
+            <button
+              type="button"
+              className="bka-btn"
+              onClick={() => navigator.clipboard?.writeText(url).then(() => toast(t.syncCopied), () => toast(t.errorGeneric, "error"))}
+            >
+              {t.syncCopy}
+            </button>
+          </div>
+          <p className="bka-help">⚠ {t.syncPrivate}</p>
+          {local && <p className="bka-help">{t.syncLocalNote}</p>}
+          <div>
+            <ConfirmButton label={t.syncRegenerate} question={t.syncRegenerateConfirm} className="bka-btn bka-btn--sm" onConfirm={create} />
+          </div>
+        </div>
+      )}
+    </Section>
   );
 }

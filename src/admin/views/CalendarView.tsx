@@ -14,6 +14,7 @@ import {
   type Booking,
   type DayException,
 } from "../../core/index.js";
+import { HelpLink } from "./HelpView.js";
 import { useAdmin, useBlocks, useBookings, useExceptions } from "../data.js";
 import { useFormat } from "../ui.js";
 
@@ -81,7 +82,10 @@ export function CalendarView({ initialDate }: { initialDate?: string }) {
   return (
     <div className="bka-view bka-view--wide">
       <div className="bka-view__head">
-        <h1>{t.navCalendar}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navCalendar}</h1>
+          <HelpLink section="calendar" />
+        </div>
         <div className="bka-seg" role="group">
           {(["day", "week", "month"] as View[]).map((v) => (
             <button type="button" key={v} className={view === v ? "bka-seg--on" : ""} aria-pressed={view === v} onClick={() => setView(v)}>

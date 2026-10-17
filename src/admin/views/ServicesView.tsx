@@ -2,6 +2,7 @@
 import { addDoc, collection, deleteDoc, doc, setDoc, writeBatch } from "firebase/firestore";
 import { useState } from "react";
 import { COL, formatDuration, formatPrice, type Category, type LocationMode, type Service } from "../../core/index.js";
+import { HelpLink } from "./HelpView.js";
 import { useAdmin } from "../data.js";
 import { ConfirmButton, Drawer, Field, LocalizedInput, Section, Toggle, useFormat } from "../ui.js";
 
@@ -64,7 +65,10 @@ export function ServicesView() {
   return (
     <div className="bka-view">
       <div className="bka-view__head">
-        <h1>{t.navServices}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navServices}</h1>
+          <HelpLink section="services" />
+        </div>
         <button type="button" className="bka-btn bka-btn--primary" onClick={() => setEditing(blank(services.length))}>
           + {t.addService}
         </button>

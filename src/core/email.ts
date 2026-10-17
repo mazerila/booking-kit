@@ -5,7 +5,9 @@
  * button are added around them.
  */
 import { fill, formatDate, formatDuration, formatPrice, formatTime, pick } from "./format.js";
-import type { Booking, EmailKind, EmailText, FieldDef, Settings } from "./types.js";
+import type { CalendarLinks } from "./calendar.js";
+import { readableOn } from "./theme.js";
+import type { Booking, EmailKind, EmailText, Settings } from "./types.js";
 
 export const EMAIL_PLACEHOLDERS = [
   "name",
@@ -137,6 +139,8 @@ const labels = {
     status: "Statut",
     pending: "À confirmer",
     outOfZone: "Hors zone",
+    addToCalendar: "Ajouter à mon agenda",
+    ics: "Apple / autre (.ics)",
   },
   en: {
     service: "Service",
@@ -152,6 +156,8 @@ const labels = {
     status: "Status",
     pending: "To approve",
     outOfZone: "Out of area",
+    addToCalendar: "Add to my calendar",
+    ics: "Apple / other (.ics)",
   },
 } as Record<string, Record<string, string>>;
 
@@ -167,6 +173,8 @@ export type EmailContext = {
   /** Previous start, for "rescheduled" e-mails. */
   previousStart?: string;
   brand?: { color?: string; logoUrl?: string };
+  /** "Add to calendar" links (client e-mails about a confirmed appointment). */
+  calendarLinks?: CalendarLinks;
 };
 
 export type RenderedEmail = { subject: string; text: string; html: string };
@@ -233,12 +241,22 @@ export function renderEmail(ctx: EmailContext): RenderedEmail {
   const link = isAdmin ? ctx.adminUrl : ctx.manageUrl;
   const showButton = !!link && !!base.button && kind !== "cancelled" && kind !== "declined";
   const color = ctx.brand?.color ?? "#2b2b2e";
+  const onColor = readableOn(color);
+  const cal = !isAdmin && b.status === "confirmed" && ["confirmed", "rescheduled", "reminder"].includes(kind) ? ctx.calendarLinks : undefined;
+  const calItems = cal
+    ? ([
+        ["Google", cal.google],
+        ["Outlook", cal.outlook],
+        ...(cal.ics ? [[L.ics!, cal.ics]] : []),
+      ] as [string, string][])
+    : [];
 
   const text = [
     body,
     "",
     ...rows.map(([k, v]) => `${k} : ${v}`),
     ...(showButton ? ["", `${base.button} : ${link}`] : []),
+    ...(calItems.length ? ["", `${L.addToCalendar} :`, ...calItems.map(([k, v]) => `- ${k} : ${v}`)] : []),
     "",
     [s.businessName, s.contact.phone, s.contact.email].filter(Boolean).join(" · "),
   ].join("\n");
@@ -262,7 +280,14 @@ export function renderEmail(ctx: EmailContext): RenderedEmail {
           )
           .join("")}
       </table>
-      ${showButton ? `<p style="margin:24px 0 0"><a href="${escapeHtml(link!)}" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600">${escapeHtml(base.button!)}</a></p>` : ""}
+      ${showButton ? `<p style="margin:24px 0 0"><a href="${escapeHtml(link!)}" style="display:inline-block;background:${color};color:${onColor};text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600">${escapeHtml(base.button!)}</a></p>` : ""}
+      ${
+        calItems.length
+          ? `<p style="margin:20px 0 0;font-size:13px;color:#777">${escapeHtml(L.addToCalendar!)} : ${calItems
+              .map(([k, v]) => `<a href="${escapeHtml(v)}" style="color:#222;font-weight:600">${escapeHtml(k)}</a>`)
+              .join(" · ")}</p>`
+          : ""
+      }
     </div>
     <p style="font-size:12px;color:#888;margin:20px 4px 0;line-height:1.6">${[s.businessName, s.contact.phone, s.contact.email]
       .filter(Boolean)

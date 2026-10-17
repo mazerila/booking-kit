@@ -2,6 +2,7 @@
 import { doc, updateDoc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { COL, type Client } from "../../core/index.js";
+import { HelpLink } from "./HelpView.js";
 import { useAdmin, useClientBookings, useClients } from "../data.js";
 import { Drawer, Section, useFormat } from "../ui.js";
 import { BookingRow } from "./AgendaView.js";
@@ -45,7 +46,10 @@ export function ClientsView() {
   return (
     <div className="bka-view">
       <div className="bka-view__head">
-        <h1>{t.navClients}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navClients}</h1>
+          <HelpLink section="clients" />
+        </div>
         <button type="button" className="bka-btn" onClick={exportCsv} disabled={!list.length}>
           {t.exportCsv}
         </button>

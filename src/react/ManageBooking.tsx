@@ -6,12 +6,12 @@
  *   <ManageBooking apiBase="/api/booking" />   // reads ?t= from the URL
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fill, formatDate, formatTime, type BookingStatus, type PublicBooking, type PublicConfig } from "../core/index.js";
+import { fill, formatDate, formatTime, mergeThemes, type BookingStatus, type PublicBooking, type PublicConfig } from "../core/index.js";
 import { BookingApiError, createApi } from "./api.js";
 import { DateTimePicker } from "./DateTimePicker.js";
 import { CalendarLinks, SummaryCard } from "./steps.js";
 import { textsFor, type BookingTexts } from "./texts.js";
-import { themeStyle, type BookingTheme } from "./theme.js";
+import { themeStyle, useThemeFonts, type BookingTheme } from "./theme.js";
 import { Alert, ContactLine, Ctx, errorText, Spinner, useWidget } from "./ui.js";
 
 export type ManageBookingProps = {
@@ -24,6 +24,10 @@ export type ManageBookingProps = {
   texts?: Record<string, Partial<BookingTexts>>;
   /** Link to book again after a cancellation. */
   bookUrl?: string;
+  /** Apply the look chosen in the admin over `theme`. Default true. */
+  useAdminTheme?: boolean;
+  /** Load Google fonts used by the theme. Set false if the site loads them itself (or for GDPR reasons). Default true. */
+  loadFonts?: boolean;
   className?: string;
 };
 
@@ -56,6 +60,8 @@ export function ManageBooking(props: ManageBookingProps) {
 
   const locale = props.locale ?? booking?.locale ?? config?.defaultLocale ?? "fr";
   const t = useMemo(() => textsFor(locale, props.texts), [locale, props.texts]);
+  const theme = useMemo(() => mergeThemes(props.theme, props.useAdminTheme === false ? undefined : config?.theme), [props.theme, props.useAdminTheme, config?.theme]);
+  useThemeFonts(theme, props.loadFonts !== false);
 
   useEffect(() => {
     if (!token) {
@@ -73,7 +79,7 @@ export function ManageBooking(props: ManageBookingProps) {
   }, [api, token]);
 
   return (
-    <div className={`bk-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(props.theme)} lang={locale}>
+    <div className={`bk-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(theme)} lang={locale}>
       {error && !booking ? (
         <Alert>{error}</Alert>
       ) : !config || !booking ? (
@@ -137,7 +143,7 @@ function Manage({ booking, token, onChange, bookUrl }: { booking: PublicBooking;
 
       {active && mode === "view" && (
         <>
-          {booking.status === "confirmed" && <CalendarLinks booking={booking} />}
+          {booking.status === "confirmed" && <CalendarLinks booking={booking} token={token} manageHref={typeof window !== "undefined" ? window.location.href : undefined} />}
           {booking.canCancel || booking.canReschedule ? (
             <>
               <div className="bk-actions">

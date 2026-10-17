@@ -1,6 +1,7 @@
 /** Home screen: requests to review, today, and the next two weeks. */
 import { useMemo, useState, type ReactNode } from "react";
 import { addDays, localDateOf, zonedTime, type Booking } from "../../core/index.js";
+import { HelpLink } from "./HelpView.js";
 import { useAdmin, useBookings, usePendingBookings } from "../data.js";
 import { Section, StatusBadge, useFormat } from "../ui.js";
 
@@ -74,7 +75,10 @@ export function AgendaView() {
   return (
     <div className="bka-view">
       <div className="bka-view__head">
-        <h1>{t.navAgenda}</h1>
+        <div className="bka-titlerow">
+          <h1>{t.navAgenda}</h1>
+          <HelpLink section="agenda" />
+        </div>
         <button type="button" className="bka-btn bka-btn--primary" onClick={() => newBooking()}>
           + {t.newBooking}
         </button>

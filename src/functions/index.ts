@@ -31,7 +31,9 @@ export type BookingFunctionsOptions = {
   managePath?: string | Record<string, string>;
   /** Path of the page rendering <AdminApp />. Default "/admin/". */
   adminPath?: string;
-  /** Colors and logo of the e-mails. */
+  /** Public path of this API (the Hosting rewrite). Default "/api/booking". */
+  apiPath?: string;
+  /** Logo of the e-mails, and a fixed colour (default: the primary colour chosen in the admin). */
   brand?: { color?: string; logoUrl?: string };
   /** "fr" (French address base, default), "none", or your own geocoder. */
   geocoder?: "fr" | "none" | Geocoder;
@@ -65,6 +67,7 @@ export function createBookingFunctions(opts: BookingFunctionsOptions) {
     siteUrl: read(opts.siteUrl),
     managePath,
     adminPath: opts.adminPath ?? "/admin/",
+    apiPath: opts.apiPath ?? "/api/booking",
     brand: opts.brand,
     geocoder,
     now: () => Date.now(),

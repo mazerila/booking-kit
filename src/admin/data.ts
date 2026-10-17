@@ -29,6 +29,7 @@ import {
   type Settings,
   type WeeklyHours,
 } from "../core/index.js";
+import type { HelpSection } from "./help.js";
 import type { AdminTexts } from "./texts.js";
 
 export type EmulatorConfig = { auth?: string; firestore?: { host: string; port: number } };
@@ -59,6 +60,12 @@ export type AdminContext = {
   categories: Category[];
   /** For WhatsApp links from national numbers ("33" = France). */
   phoneCountryCode: string;
+  /** Base URL of the booking API, as given to <AdminApp>. */
+  apiBase: string;
+  /** Public booking page, for "View on site" links. */
+  siteBookingUrl?: string;
+  support?: { name: string; email?: string; phone?: string };
+  extraHelp?: Record<string, HelpSection[]>;
   /** Opens the booking panel. */
   openBooking: (id: string) => void;
   /** Opens the new-booking form, optionally prefilled. */
@@ -224,3 +231,12 @@ export function createAdminApi(base: string, auth: Auth) {
 }
 
 export type AdminApi = ReturnType<typeof createAdminApi>;
+
+/** The provider's calendar feed key (bookingConfig/feed); null when not created. */
+export function useFeedKey() {
+  const { db } = useAdmin();
+  return useSnapshot<string | null>(
+    (set, fail) => onSnapshot(doc(db, COL.config, CONFIG_DOC.feed), (s) => set((s.data()?.key as string | undefined) ?? null), fail),
+    [db],
+  );
+}

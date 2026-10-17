@@ -53,6 +53,8 @@ export function createApi(base: string) {
     book: (payload: BookPayload) => request<{ ok: true; booking: PublicBooking | null; token?: string }>("POST", "/bookings", payload),
     manage: (t: string) => request<{ booking: PublicBooking }>("GET", "/manage", undefined, { t }),
     manageAvailability: (t: string, from: string, to: string) => request<Availability>("GET", "/manage/availability", undefined, { t, from, to }),
+    /** Served as text/calendar, so phones offer to add it to the calendar app. */
+    icsUrl: (t: string) => `${root}/manage/ics?${new URLSearchParams({ t })}`,
     cancel: (token: string) => request<{ booking: PublicBooking }>("POST", "/manage/cancel", { token }),
     reschedule: (token: string, start: string) => request<{ booking: PublicBooking }>("POST", "/manage/reschedule", { token, start }),
   };

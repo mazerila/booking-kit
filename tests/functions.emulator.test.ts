@@ -116,6 +116,10 @@ async function call(method: string, path: string, opts: { body?: unknown; query?
       json = j;
       return res;
     },
+    send(body: string) {
+      json = body;
+      return res;
+    },
     set() {
       return res;
     },
@@ -303,6 +307,32 @@ describe("HTTP API", () => {
     expect(done.json.booking.status).toBe("completed");
     const slots = await call("GET", "/admin/slots", { token, query: { service: "face", from: sat, to: sat } });
     expect(slots.json.slots[sat]).toBeUndefined(); // Saturday is closed in the weekly hours…
+  });
+});
+
+describe("calendars", () => {
+  it("serves the client's .ics and the provider's private feed", async () => {
+    const { booking } = await book(at(MON, "10:00"));
+    const ics = await call("GET", "/manage/ics", { query: { t: booking.manageToken! } });
+    expect(ics.status).toBe(200);
+    expect(ics.json).toContain("BEGIN:VEVENT");
+    expect(ics.json).toContain("SUMMARY:Soin visage — Studio");
+    expect(ics.json).toContain("rdv/?t="); // manage link in the event
+
+    // Confirmation e-mail carries calendar links.
+    const confirmation = sent.find((m) => m.to[0] === "ana@example.com") as unknown as { html: string };
+    expect(confirmation.html).toContain("/api/booking/manage/ics?t=");
+    expect(confirmation.html).toContain("calendar.google.com");
+
+    // No key yet, or a wrong key: nothing.
+    expect((await call("GET", "/feed.ics", { query: { k: "x".repeat(32) } })).status).toBe(404);
+    await db().collection(COL.config).doc(CONFIG_DOC.feed).set({ key: "k".repeat(32) });
+    expect((await call("GET", "/feed.ics", { query: { k: "y".repeat(32) } })).status).toBe(404);
+    const feed = await call("GET", "/feed.ics", { query: { k: "k".repeat(32) } });
+    expect(feed.status).toBe(200);
+    expect(feed.json).toContain("X-WR-CALNAME:Studio");
+    expect(feed.json).toContain("SUMMARY:Ana Martin — Soin visage");
+    expect(feed.json).toContain("06 12 34 56 78");
   });
 });
 

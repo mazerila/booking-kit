@@ -2,8 +2,10 @@
  * The HTTP API (one Cloud Function). Served same-origin through a Hosting
  * rewrite at /api/booking/**, or directly at the function URL.
  *
- * Public:  GET  /config · GET /availability · GET /geocode · POST /bookings
- *          GET  /manage · GET /manage/availability · POST /manage/cancel · POST /manage/reschedule
+ * Public:  GET  /config · GET /availability · GET /geocode · POST /zone · POST /bookings
+ *          GET  /manage · GET /manage/availability · GET /manage/ics
+ *          POST /manage/cancel · POST /manage/reschedule
+ *          GET  /feed.ics?k=… (provider's private calendar, secret key)
  * Admin:   GET  /admin/me · GET /admin/slots · POST /admin/bookings
  *          POST /admin/bookings/:id/status · POST /admin/bookings/:id/move
  *          (admins read and edit everything else directly in Firestore, guarded by the rules)
@@ -13,7 +15,15 @@ import * as logger from "firebase-functions/logger";
 import { getAuth } from "firebase-admin/auth";
 import { z } from "zod";
 import {
+  buildCalendar,
+  buildIcs,
   checkZone,
+  COL,
+  DAY_MS,
+  pick,
+  providerEvent,
+  resolveAppearance,
+  type Booking,
   computeSlots,
   dateRange,
   localDateOf,
@@ -24,13 +34,14 @@ import {
   ApiError,
   assertClientCanChange,
   changeStatus,
+  clientEvent,
   createBooking,
   findByToken,
   moveBooking,
   publicView,
   type Ctx,
 } from "./actions.js";
-import { isAdminEmail, loadBusiness, loadBusy, loadExceptions } from "./db.js";
+import { configRef, db, isAdminEmail, loadBusiness, loadBusy, loadExceptions } from "./db.js";
 import {
   addressSchema,
   adminBookSchema,
@@ -149,6 +160,7 @@ export function createApiHandler(getCtx: () => Ctx, opts: ApiOptions = {}) {
           categories,
           services: services.filter((s) => s.active),
           geocoding: !!ctx.geocoder,
+          theme: resolveAppearance(settings.appearance),
         };
         res.set("Cache-Control", "public, max-age=30");
         res.json(config);
@@ -216,6 +228,42 @@ export function createApiHandler(getCtx: () => Ctx, opts: ApiOptions = {}) {
         const b = await findByToken(token);
         res.set("Cache-Control", "no-store");
         res.json(await availability(ctx, b.serviceId, from, to, { excludeId: b.id }));
+        return;
+      }
+
+      if (route === "GET /manage/ics") {
+        const { token } = parse(tokenSchema, { token: q.t ?? q.token });
+        const { settings } = await loadBusiness();
+        const b = await findByToken(token);
+        const ics = buildIcs({ ...clientEvent(ctx, settings, b), sequence: b.history.length }, ctx.now());
+        res.set("Content-Type", "text/calendar; charset=utf-8");
+        res.set("Content-Disposition", 'attachment; filename="rendez-vous.ics"');
+        res.set("Cache-Control", "no-store");
+        res.send(ics);
+        return;
+      }
+
+      // The provider's private calendar subscription (secret key from the admin).
+      if (route === "GET /feed" || route === "GET /feed.ics") {
+        const key = String(q.k ?? "");
+        const stored = (await configRef("feed").get()).data()?.key as string | undefined;
+        if (!stored || key.length < 20 || key !== stored) throw new ApiError(404, "not_found");
+        const { settings } = await loadBusiness();
+        const now = ctx.now();
+        const snap = await db()
+          .collection(COL.bookings)
+          .where("start", ">=", new Date(now - 60 * DAY_MS).toISOString())
+          .where("start", "<=", new Date(now + 400 * DAY_MS).toISOString())
+          .get();
+        const fieldLabels = Object.fromEntries(settings.fields.map((f) => [f.id, pick(f.label, settings.defaultLocale, settings.defaultLocale)]));
+        const adminBase = `${ctx.siteUrl.replace(/\/$/, "")}${ctx.adminPath}#/booking/`;
+        const events = snap.docs
+          .map((d) => d.data() as Booking)
+          .filter((b) => b.status === "pending" || b.status === "confirmed" || b.status === "completed")
+          .map((b) => providerEvent(b, { locale: settings.defaultLocale, defaultLocale: settings.defaultLocale, adminUrl: adminBase + b.id, fieldLabels }));
+        res.set("Content-Type", "text/calendar; charset=utf-8");
+        res.set("Cache-Control", "private, max-age=300");
+        res.send(buildCalendar(events, { name: settings.businessName || "Rendez-vous", refreshMinutes: 30 }, now));
         return;
       }
 

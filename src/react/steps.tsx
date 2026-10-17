@@ -1,6 +1,7 @@
 /** The steps of the booking flow. */
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import {
+  appointmentEvent,
   buildIcs,
   EMAIL_RE,
   fieldsFor,
@@ -10,6 +11,7 @@ import {
   formatPrice,
   formatTime,
   googleCalendarUrl,
+  outlookCalendarUrl,
   pick,
   PHONE_RE,
   type Address,
@@ -485,7 +487,7 @@ export function SummaryCard({
       {address && (
         <div className="bk-summary__row">
           <p>
-            <Icon name="home" size={15} /> {address}
+            <Icon name={service.location === "home" ? "home" : "pin"} size={15} /> {address}
           </p>
           {onEdit?.address && (
             <button type="button" className="bk-link" onClick={onEdit.address}>
@@ -510,35 +512,44 @@ export function SummaryCard({
   );
 }
 
-export function calendarEvent(booking: PublicBooking, businessName: string, locale: string, defaultLocale: string) {
-  return {
-    uid: `${booking.id}@booking`,
-    start: Date.parse(booking.start),
-    end: Date.parse(booking.end),
-    title: `${pick(booking.service.name, locale, defaultLocale)} — ${businessName}`,
-    location: booking.where,
-  };
-}
-
-export function CalendarLinks({ booking }: { booking: PublicBooking }) {
-  const { config, locale, t } = useWidget();
-  const event = calendarEvent(booking, config.businessName, locale, config.defaultLocale);
-  const [icsUrl, setIcsUrl] = useState<string>();
+/** "Add to my calendar": Google, Outlook, and Apple / others (.ics). */
+export function CalendarLinks({ booking, token, manageHref }: { booking: PublicBooking; token?: string; manageHref?: string }) {
+  const { api, config, locale, t } = useWidget();
+  const absolute = manageHref && typeof window !== "undefined" ? new URL(manageHref, window.location.href).href : undefined;
+  const event = appointmentEvent(booking, {
+    businessName: config.businessName,
+    locale,
+    defaultLocale: config.defaultLocale,
+    where: booking.where,
+    manageUrl: absolute,
+    phone: config.contact.phone,
+    email: config.contact.email,
+  });
+  const [blobUrl, setBlobUrl] = useState<string>();
+  // Without a token (should not happen), fall back to a file built in the browser.
   useEffect(() => {
+    if (token) return;
     const url = URL.createObjectURL(new Blob([buildIcs(event)], { type: "text/calendar" }));
-    setIcsUrl(url);
+    setBlobUrl(url);
     return () => URL.revokeObjectURL(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booking.id, booking.start]);
+  }, [booking.id, booking.start, token]);
+  const ics = token ? api.icsUrl(token) : blobUrl;
+
   return (
     <div className="bk-cal-links">
-      <p className="bk-label">{t.addToCalendar}</p>
-      <div className="bk-actions">
+      <p className="bk-label">
+        <Icon name="calendar" size={16} /> {t.addToCalendar}
+      </p>
+      <div className="bk-cal-links__list">
         <a className="bk-btn bk-btn--secondary" href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer">
           {t.googleCalendar}
         </a>
-        {icsUrl && (
-          <a className="bk-btn bk-btn--secondary" href={icsUrl} download="rendez-vous.ics">
+        <a className="bk-btn bk-btn--secondary" href={outlookCalendarUrl(event)} target="_blank" rel="noopener noreferrer">
+          {t.outlookCalendar}
+        </a>
+        {ics && (
+          <a className="bk-btn bk-btn--secondary" href={ics} download="rendez-vous.ics">
             {t.icsFile}
           </a>
         )}
@@ -547,7 +558,7 @@ export function CalendarLinks({ booking }: { booking: PublicBooking }) {
   );
 }
 
-export function DoneStep({ booking, email, manageHref, onAgain }: { booking: PublicBooking; email: string; manageHref?: string; onAgain: () => void }) {
+export function DoneStep({ booking, email, token, manageHref, onAgain }: { booking: PublicBooking; email: string; token?: string; manageHref?: string; onAgain: () => void }) {
   const { t } = useWidget();
   const pending = booking.status === "pending";
   return (
@@ -560,7 +571,7 @@ export function DoneStep({ booking, email, manageHref, onAgain }: { booking: Pub
       </h2>
       <p className="bk-muted">{fill(pending ? t.doneRequestText : t.doneConfirmedText, { email })}</p>
       <SummaryCard service={booking.service} start={booking.start} address={booking.where} />
-      {!pending && <CalendarLinks booking={booking} />}
+      {!pending && <CalendarLinks booking={booking} token={token} manageHref={manageHref} />}
       <div className="bk-actions">
         {manageHref && (
           <a className="bk-btn bk-btn--secondary" href={manageHref}>

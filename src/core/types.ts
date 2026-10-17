@@ -7,6 +7,8 @@
  * ("09:00", "2026-10-17") are always in the provider's time zone (`Settings.timezone`).
  */
 
+import type { Appearance, BookingTheme } from "./theme.js";
+
 /** Text in several languages, keyed by locale: `{ fr: "Soin visage", en: "Facial" }`. */
 export type LocalizedText = Record<string, string>;
 
@@ -153,6 +155,8 @@ export type Settings = {
   emailTexts: Partial<Record<EmailKind, Record<string, EmailText>>>;
   /** Who receives new-booking alerts. */
   notifyEmails: string[];
+  /** Look chosen in the admin (preset + custom values). */
+  appearance: Appearance;
 };
 
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "declined" | "no_show";
@@ -237,7 +241,7 @@ export const COL = {
 } as const;
 
 /** Documents of `bookingConfig`. */
-export const CONFIG_DOC = { business: "business", weekly: "weekly", admins: "admins" } as const;
+export const CONFIG_DOC = { business: "business", weekly: "weekly", admins: "admins", feed: "feed" } as const;
 
 /** What the public API exposes about the business (no private data). */
 export type PublicConfig = {
@@ -256,6 +260,8 @@ export type PublicConfig = {
   services: Service[];
   /** Whether the server can geocode addresses (address autocomplete). */
   geocoding: boolean;
+  /** Theme chosen in the admin; undefined = follow the website's design. */
+  theme?: BookingTheme;
 };
 
 /** What a client sees of their booking (manage page, confirmation). */

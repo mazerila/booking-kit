@@ -5,12 +5,12 @@
  *   <BookingWidget apiBase="/api/booking" locale="fr" theme={{ primary: "#2e2c2f" }} manageUrl="/rdv/" />
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { pick, type PublicBooking, type PublicConfig, type Service } from "../core/index.js";
+import { mergeThemes, pick, type PublicBooking, type PublicConfig, type Service } from "../core/index.js";
 import { BookingApiError, createApi, type BookingApi } from "./api.js";
 import { DateTimePicker } from "./DateTimePicker.js";
 import { AddressStep, DetailsStep, DoneStep, emptyDetails, ServiceStep, SummaryCard, type Details, type ZoneState } from "./steps.js";
 import { textsFor, type BookingTexts } from "./texts.js";
-import { themeStyle, type BookingTheme } from "./theme.js";
+import { themeStyle, useThemeFonts, type BookingTheme } from "./theme.js";
 import { Alert, Ctx, errorText, Icon, Spinner, useWidget } from "./ui.js";
 
 export type BookingStep = "service" | "address" | "datetime" | "details" | "done";
@@ -38,6 +38,10 @@ export type BookingWidgetProps = {
   onBooked?: (booking: PublicBooking) => void;
   /** Analytics hook. */
   onStepChange?: (step: BookingStep, service?: Service) => void;
+  /** Apply the look chosen in the admin over `theme`. Default true. */
+  useAdminTheme?: boolean;
+  /** Load Google fonts used by the theme. Set false if the site loads them itself (or for GDPR reasons). Default true. */
+  loadFonts?: boolean;
   className?: string;
 };
 
@@ -48,6 +52,8 @@ export function BookingWidget(props: BookingWidgetProps) {
   const [attempt, setAttempt] = useState(0);
   const locale = props.locale ?? config?.defaultLocale ?? "fr";
   const t = useMemo(() => textsFor(locale, props.texts), [locale, props.texts]);
+  const theme = useMemo(() => mergeThemes(props.theme, props.useAdminTheme === false ? undefined : config?.theme), [props.theme, props.useAdminTheme, config?.theme]);
+  useThemeFonts(theme, props.loadFonts !== false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,7 +69,7 @@ export function BookingWidget(props: BookingWidgetProps) {
   }, [api, attempt]);
 
   return (
-    <div className={`bk-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(props.theme)} lang={locale}>
+    <div className={`bk-root${props.className ? ` ${props.className}` : ""}`} style={themeStyle(theme)} lang={locale}>
       {loadError ? (
         <Alert>
           <p>{loadError}</p>
@@ -296,6 +302,7 @@ function Flow(props: BookingWidgetProps & { api: BookingApi }) {
         <DoneStep
           booking={result.booking}
           email={details.email}
+          token={result.token}
           manageHref={props.manageUrl && result.token ? `${props.manageUrl}${props.manageUrl.includes("?") ? "&" : "?"}t=${result.token}` : undefined}
           onAgain={reset}
         />
