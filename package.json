@@ -1,6 +1,6 @@
 {
   "name": "@mazerila/booking-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reusable appointment booking module for service-provider websites (widget, admin, Firebase backend).",
   "type": "module",
   "sideEffects": [

@@ -11,7 +11,7 @@ import { DateTimePicker } from "./DateTimePicker.js";
 import { AddressStep, DetailsStep, DoneStep, emptyDetails, ServiceStep, SummaryCard, type Details, type ZoneState } from "./steps.js";
 import { textsFor, type BookingTexts } from "./texts.js";
 import { themeStyle, useThemeFonts, type BookingTheme } from "./theme.js";
-import { Alert, Ctx, errorText, Icon, Spinner, useWidget } from "./ui.js";
+import { Alert, Ctx, errorText, Icon, Spinner, TermsDialog, useWidget } from "./ui.js";
 
 export type BookingStep = "service" | "address" | "datetime" | "details" | "done";
 
@@ -50,6 +50,8 @@ export function BookingWidget(props: BookingWidgetProps) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const openTerms = useCallback(() => setTermsOpen(true), []);
   const locale = props.locale ?? config?.defaultLocale ?? "fr";
   const t = useMemo(() => textsFor(locale, props.texts), [locale, props.texts]);
   const theme = useMemo(() => mergeThemes(props.theme, props.useAdminTheme === false ? undefined : config?.theme), [props.theme, props.useAdminTheme, config?.theme]);
@@ -80,8 +82,9 @@ export function BookingWidget(props: BookingWidgetProps) {
       ) : !config ? (
         <Spinner label={t.loading} />
       ) : (
-        <Ctx.Provider value={{ api, config, locale, t }}>
+        <Ctx.Provider value={{ api, config, locale, t, openTerms }}>
           <Flow {...props} api={api} />
+          <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
         </Ctx.Provider>
       )}
     </div>

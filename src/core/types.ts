@@ -157,6 +157,8 @@ export type Settings = {
   notifyEmails: string[];
   /** Look chosen in the admin (preset + custom values). */
   appearance: Appearance;
+  /** General terms; empty texts = the default model (core/terms.ts). */
+  terms: { title: LocalizedText; body: LocalizedText; updatedAt?: string };
 };
 
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "declined" | "no_show";
@@ -209,6 +211,8 @@ export type Booking = {
   notes?: string;
   /** Secret of the client's manage link (bookings are readable by admins only). */
   manageToken?: string;
+  /** Version of the general terms in force when booked (their `updatedAt`, or the default's). */
+  termsVersion?: string;
   reminderSentAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -262,6 +266,8 @@ export type PublicConfig = {
   geocoding: boolean;
   /** Theme chosen in the admin; undefined = follow the website's design. */
   theme?: BookingTheme;
+  /** General terms, ready to display (default model filled in where not customized). */
+  terms: { title: LocalizedText; body: LocalizedText; version: string };
 };
 
 /** What a client sees of their booking (manage page, confirmation). */

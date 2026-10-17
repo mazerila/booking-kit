@@ -67,12 +67,14 @@ export function LocalizedInput({
   onChange,
   multiline,
   help,
+  placeholder,
 }: {
   label: string;
   value: LocalizedText | undefined;
   onChange: (v: LocalizedText) => void;
   multiline?: boolean;
   help?: string;
+  placeholder?: LocalizedText;
 }) {
   const { settings } = useAdmin();
   const locales = settings.locales;
@@ -85,7 +87,7 @@ export function LocalizedInput({
           {multiline ? (
             <textarea className="bka-input" rows={3} value={value?.[l] ?? ""} onChange={(e) => onChange({ ...value, [l]: e.target.value })} aria-label={`${label} (${l})`} />
           ) : (
-            <input className="bka-input" value={value?.[l] ?? ""} onChange={(e) => onChange({ ...value, [l]: e.target.value })} aria-label={`${label} (${l})`} />
+            <input className="bka-input" value={value?.[l] ?? ""} placeholder={placeholder?.[l]} onChange={(e) => onChange({ ...value, [l]: e.target.value })} aria-label={`${label} (${l})`} />
           )}
         </div>
       ))}

@@ -23,6 +23,7 @@ import {
   pick,
   providerEvent,
   resolveAppearance,
+  resolveTerms,
   type Booking,
   computeSlots,
   dateRange,
@@ -161,6 +162,7 @@ export function createApiHandler(getCtx: () => Ctx, opts: ApiOptions = {}) {
           services: services.filter((s) => s.active),
           geocoding: !!ctx.geocoder,
           theme: resolveAppearance(settings.appearance),
+          terms: (({ title, body, version }) => ({ title, body, version }))(resolveTerms(settings)),
         };
         res.set("Cache-Control", "public, max-age=30");
         res.json(config);

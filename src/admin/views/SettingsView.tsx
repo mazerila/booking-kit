@@ -1,7 +1,22 @@
 /** Business settings: contact, zone, policies, reminders, form questions, e-mail texts. */
 import { doc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { COL, CONFIG_DOC, defaultEmailText, isValidTimeZone, type EmailKind, type FieldDef, type FieldType, type Settings } from "../../core/index.js";
+import {
+  COL,
+  CONFIG_DOC,
+  DEFAULT_TERMS_BODY,
+  DEFAULT_TERMS_TITLE,
+  defaultEmailText,
+  fill,
+  isValidTimeZone,
+  resolveTerms,
+  TERMS_HREF,
+  type EmailKind,
+  type FieldDef,
+  type FieldType,
+  type Settings,
+} from "../../core/index.js";
+import { RichBody } from "../../react/ui.js";
 import { useAdmin, useFeedKey } from "../data.js";
 import { HelpLink } from "./HelpView.js";
 import { ConfirmButton, Field, LocalizedInput, Section, Toggle, useFormat } from "../ui.js";
@@ -53,8 +68,10 @@ export function SettingsView() {
     const tz = s.timezone.trim();
     if (!isValidTimeZone(tz)) return toast(`${t.timezone} ?`, "error");
     const langs = list(locales);
+    const termsChanged = JSON.stringify({ t: s.terms.title, b: s.terms.body }) !== JSON.stringify({ t: settings.terms.title, b: settings.terms.body });
     const next: Settings = {
       ...s,
+      terms: termsChanged ? { ...s.terms, updatedAt: new Date().toISOString() } : s.terms,
       timezone: tz,
       notifyEmails: list(notify).map((e) => e.toLowerCase()),
       zone: { ...s.zone, postcodes: list(postcodes) },
@@ -198,6 +215,10 @@ export function SettingsView() {
 
       <Section title={t.formFields} help={t.formFieldsHelp}>
         <FieldsEditor fields={s.fields} onChange={(fields) => set({ fields })} />
+      </Section>
+
+      <Section title={t.termsTitle} help={t.termsHelp}>
+        <TermsEditor value={s} onChange={(terms) => set({ terms })} onAddCheckbox={(fields) => set({ fields })} />
       </Section>
 
       <Section title={t.emailTexts} help={t.emailTextsHelp}>
@@ -461,5 +482,98 @@ function CalendarSync() {
         </div>
       )}
     </Section>
+  );
+}
+
+function TermsEditor({
+  value: s,
+  onChange,
+  onAddCheckbox,
+}: {
+  value: Settings;
+  onChange: (terms: Settings["terms"]) => void;
+  onAddCheckbox: (fields: FieldDef[]) => void;
+}) {
+  const { t, locale } = useAdmin();
+  const resolved = resolveTerms(s);
+  const linked = s.fields.some((f) => f.type === "checkbox" && Object.values(f.label).some((l) => l.includes(TERMS_HREF)));
+  const setBody = (l: string, body: string) => onChange({ ...s.terms, body: { ...s.terms.body, [l]: body } });
+  const updated = s.terms.updatedAt
+    ? fill(t.termsUpdated, { date: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(new Date(s.terms.updatedAt)) })
+    : t.termsNeverUpdated;
+
+  function addCheckbox() {
+    const id = s.fields.some((f) => f.id === "terms") ? `terms${s.fields.length + 1}` : "terms";
+    onAddCheckbox([
+      ...s.fields,
+      {
+        id,
+        type: "checkbox",
+        required: true,
+        label: { fr: "J'accepte les [conditions générales](#terms).", en: "I accept the [terms and conditions](#terms)." },
+      },
+    ]);
+  }
+
+  return (
+    <div className="bka-form">
+      <p className="bka-tip">{t.termsModelNote}</p>
+      {!linked && (
+        <div className="bka-warn">
+          <p>{t.termsNoCheckbox}</p>
+          <button type="button" className="bka-btn bka-btn--sm" onClick={addCheckbox}>
+            + {t.termsAddCheckbox}
+          </button>
+        </div>
+      )}
+      <LocalizedInput label={t.termsHeading} value={s.terms.title} placeholder={DEFAULT_TERMS_TITLE} onChange={(title) => onChange({ ...s.terms, title })} />
+      {s.locales.map((l) => {
+        const custom = !!s.terms.body[l]?.trim();
+        const text = resolved.body[l] ?? "";
+        const todo = /médiateur à compléter|mediator's name and contact details to be completed/.test(text);
+        return (
+          <fieldset key={l} className="bka-localized bka-termsbox">
+            {s.locales.length > 1 && <legend>{l.toUpperCase()}</legend>}
+            <div className="bka-seg" role="group">
+              <button type="button" className={!custom ? "bka-seg--on" : ""} aria-pressed={!custom} onClick={() => custom && setBody(l, "")}>
+                {t.termsDefault}
+              </button>
+              <button
+                type="button"
+                className={custom ? "bka-seg--on" : ""}
+                aria-pressed={custom}
+                onClick={() => !custom && setBody(l, DEFAULT_TERMS_BODY[l] ?? DEFAULT_TERMS_BODY.en!)}
+              >
+                {t.termsCustom}
+              </button>
+            </div>
+            {custom && (
+              <>
+                <textarea className="bka-input bka-mono" rows={18} value={s.terms.body[l]} onChange={(e) => setBody(l, e.target.value)} aria-label={`${t.termsTitle} (${l})`} />
+                <p className="bka-help">{t.termsFormatHelp}</p>
+              </>
+            )}
+            {todo && <p className="bka-warn">{t.termsMediatorTodo}</p>}
+            <details className="bka-termspreview" open={custom}>
+              <summary>{custom ? t.termsPreview : t.termsShow}</summary>
+              <div className="bk-root">
+                <RichBody text={text} />
+              </div>
+            </details>
+            <div className="bka-actions">
+              {!custom ? (
+                <button type="button" className="bka-btn bka-btn--sm" onClick={() => setBody(l, DEFAULT_TERMS_BODY[l] ?? DEFAULT_TERMS_BODY.en!)}>
+                  {t.termsEdit}
+                </button>
+              ) : (
+                <ConfirmButton label={t.termsReset} question={t.termsResetConfirm} className="bka-btn bka-btn--sm" onConfirm={() => setBody(l, "")} />
+              )}
+            </div>
+          </fieldset>
+        );
+      })}
+      <p className="bka-help">{t.termsLinkHelp}</p>
+      <p className="bka-help">{updated}</p>
+    </div>
   );
 }

@@ -22,7 +22,7 @@
       {
         "id": "terms",
         "type": "checkbox",
-        "label": { "fr": "J'accepte les [conditions générales](/cgv/).", "en": "I accept the [terms](/en/terms/)." },
+        "label": { "fr": "J'accepte les [conditions générales](#terms).", "en": "I accept the [terms and conditions](#terms)." },
         "required": true
       }
     ]

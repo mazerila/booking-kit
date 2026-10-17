@@ -6,7 +6,7 @@ fields, texts, services, rules) lives in configuration, not in code.
 
 Legend: **[v1]** must have · **[v1.1]** soon after · **[later]** optional / per client
 
-**Status (v0.2.0):** every [v1] item is built, plus travel time between home visits, CSV export,
+**Status (v0.3.0):** every [v1] item is built, plus travel time between home visits, CSV export,
 appearance editing, calendar sync for the provider and an in-app help guide. Not built yet:
 packages / multi-session cures, add-ons, Google Calendar two-way sync, SMS, statistics,
 client accounts.
@@ -41,6 +41,8 @@ client accounts.
 - [v1] Configurable extra fields: text, textarea, select, checkbox, date, number — required or optional
   (e.g. pregnancy week, medical clearance checkbox, how did you hear about us, notes)
 - [v1] Consent checkboxes (terms, cancellation policy, GDPR)
+- [v1] General terms: default model (FR/EN) filled with the business details, editable by the
+  provider, opened in a pop-up from the consent checkbox; optional terms page; version kept on each booking
 
 ### After booking
 - [v1] Confirmation e-mail to client (with .ics, address, manage link)

@@ -903,3 +903,97 @@ textarea.bk-input {
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
   gap: 0.5rem;
 }
+
+/* ---- General terms ---- */
+.bk-inline-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bk-dialog {
+  width: min(680px, calc(100vw - 2rem));
+  max-height: min(85vh, 900px);
+  padding: 0;
+  border: 1px solid var(--bk-border, #e3e1e4);
+  border-radius: var(--bk-radius, 12px);
+  background: var(--bk-surface, #fff);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.25);
+  color: var(--bk-text, #222);
+}
+
+.bk-dialog::backdrop {
+  background: rgb(20 20 25 / 0.45);
+}
+
+.bk-dialog__inner {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.bk-dialog__head,
+.bk-dialog__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.bk-dialog__head {
+  border-bottom: 1px solid var(--bk-border, #e3e1e4);
+}
+
+.bk-dialog__head .bk-subtitle {
+  margin: 0;
+}
+
+.bk-dialog__foot {
+  justify-content: flex-end;
+  border-top: 1px solid var(--bk-border, #e3e1e4);
+}
+
+.bk-dialog__body {
+  flex: 1;
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bk-prose {
+  display: grid;
+  gap: 0.7rem;
+  font-size: 0.95em;
+  line-height: 1.65;
+}
+
+.bk-prose h3 {
+  margin: 0.6rem 0 0;
+  font-family: var(--bk-heading-font);
+  font-size: 1.05em;
+  font-weight: 600;
+}
+
+.bk-prose ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.bk-prose a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.bk-terms {
+  display: grid;
+  gap: 1rem;
+}

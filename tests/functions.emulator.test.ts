@@ -145,6 +145,7 @@ describe("booking", () => {
     expect(booking.status).toBe("confirmed");
     expect(booking.end).toBe(at(MON, "11:00"));
     expect(booking.manageToken).toBeTruthy();
+    expect(booking.termsVersion).toBe("default-1");
 
     const clientDoc = await db().collection(COL.clients).doc(booking.clientId).get();
     expect(clientDoc.data()).toMatchObject({ name: "Ana Martin", bookingCount: 1 });
@@ -210,6 +211,8 @@ describe("HTTP API", () => {
   it("serves config and availability", async () => {
     const config = await call("GET", "/config");
     expect(config.json.services.map((s: { id: string }) => s.id)).toEqual(["face", "body"]);
+    expect(config.json.terms.title.fr).toBe("Conditions générales de vente");
+    expect(config.json.terms.body.fr).toContain("**Studio**");
     expect(config.json).not.toHaveProperty("notifyEmails");
 
     await book(at(MON, "10:00"));

@@ -9,3 +9,4 @@ export * from "./email.js";
 export * from "./defaults.js";
 export * from "./theme.js";
 export * from "./calendar.js";
+export * from "./terms.js";

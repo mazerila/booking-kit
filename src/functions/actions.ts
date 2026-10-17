@@ -9,6 +9,7 @@ import * as logger from "firebase-functions/logger";
 import {
   ACTIVE_STATUSES,
   appointmentEvent,
+  DEFAULT_TERMS_VERSION,
   buildIcs,
   calendarLinks,
   resolveAppearance,
@@ -248,6 +249,7 @@ export async function createBooking(ctx: Ctx, opts: CreateOptions) {
     source: admin ? "admin" : "web",
     notes: admin ? (input as AdminBookInput).notes : undefined,
     manageToken: client.email ? newToken() : undefined,
+    termsVersion: settings.terms.updatedAt ?? DEFAULT_TERMS_VERSION,
     createdAt: iso(now),
     updatedAt: iso(now),
     history,

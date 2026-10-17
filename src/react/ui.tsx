@@ -1,6 +1,6 @@
 /** Small building blocks of the widget. */
-import { createContext, useContext, useId, type ReactNode } from "react";
-import { parseLinks, type PublicConfig } from "../core/index.js";
+import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from "react";
+import { inlineParts, parseLinks, pick, richBlocks, TERMS_HREF, type PublicConfig } from "../core/index.js";
 import type { BookingApi } from "./api.js";
 import type { BookingTexts } from "./texts.js";
 
@@ -9,6 +9,8 @@ export type WidgetContext = {
   config: PublicConfig;
   locale: string;
   t: BookingTexts;
+  /** Opens the general terms pop-up (links to "#terms"). */
+  openTerms?: () => void;
 };
 
 export const Ctx = createContext<WidgetContext | null>(null);
@@ -58,20 +60,128 @@ export function Alert({ kind = "error", children }: { kind?: "error" | "info" | 
   );
 }
 
-/** Label text with "[link](url)" support (consents). */
+/** Label text with "[link](url)" support (consents). "#terms" opens the general terms. */
 export function RichText({ text }: { text: string }) {
+  const ctx = useContext(Ctx);
   return (
     <>
       {parseLinks(text).map((s, i) =>
         "href" in s ? (
-          <a key={i} href={s.href} target="_blank" rel="noopener noreferrer">
-            {s.text}
-          </a>
+          s.href === TERMS_HREF && ctx?.openTerms ? (
+            <button
+              key={i}
+              type="button"
+              className="bk-inline-link"
+              onClick={(e) => {
+                // Inside a <label>: don't toggle the checkbox.
+                e.preventDefault();
+                ctx.openTerms!();
+              }}
+            >
+              {s.text}
+            </button>
+          ) : (
+            <a key={i} href={s.href} target={s.href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">
+              {s.text}
+            </a>
+          )
         ) : (
           <span key={i}>{s.text}</span>
         ),
       )}
     </>
+  );
+}
+
+function Inline({ text }: { text: string }) {
+  return (
+    <>
+      {inlineParts(text).map((p, i) =>
+        p.href ? (
+          <a key={i} href={p.href} target={p.href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">
+            {p.bold ? <strong>{p.text}</strong> : p.text}
+          </a>
+        ) : p.bold ? (
+          <strong key={i}>{p.text}</strong>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Long text in the simple format of the terms: "## " headings, "- " lists, paragraphs. */
+export function RichBody({ text, className = "bk-prose" }: { text: string; className?: string }) {
+  return (
+    <div className={className}>
+      {richBlocks(text).map((b, i) =>
+        b.type === "h" ? (
+          <h3 key={i}>
+            <Inline text={b.text} />
+          </h3>
+        ) : b.type === "ul" ? (
+          <ul key={i}>
+            {b.items.map((it, j) => (
+              <li key={j}>
+                <Inline text={it} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i}>
+            {b.lines.map((l, j) => (
+              <span key={j}>
+                {j > 0 && <br />}
+                <Inline text={l} />
+              </span>
+            ))}
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** The general terms in a modal dialog. */
+export function TermsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { config, locale, t } = useWidget();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal?.();
+    if (!open && d.open) d.close();
+  }, [open]);
+  const title = pick(config.terms.title, locale, config.defaultLocale);
+  return (
+    <dialog
+      ref={ref}
+      className="bk-dialog"
+      aria-label={title}
+      onClose={onClose}
+      onClick={(e) => {
+        // Click on the backdrop closes.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bk-dialog__inner">
+        <header className="bk-dialog__head">
+          <h2 className="bk-subtitle">{title}</h2>
+          <button type="button" className="bk-iconbtn" onClick={onClose} aria-label={t.close}>
+            ✕
+          </button>
+        </header>
+        <div className="bk-dialog__body">
+          <RichBody text={pick(config.terms.body, locale, config.defaultLocale)} />
+        </div>
+        <footer className="bk-dialog__foot">
+          <button type="button" className="bk-btn bk-btn--primary" onClick={onClose}>
+            {t.close}
+          </button>
+        </footer>
+      </div>
+    </dialog>
   );
 }
 

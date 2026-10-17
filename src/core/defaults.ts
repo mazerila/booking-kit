@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   emailTexts: {},
   notifyEmails: [],
   appearance: { preset: "site", custom: {} },
+  terms: { title: {}, body: {} },
 };
 
 export const DEFAULT_WEEKLY: WeeklyHours = Object.fromEntries(
@@ -49,6 +50,13 @@ export function normalizeSettings(stored: unknown): Settings {
     appearance: isObj(s.appearance)
       ? { preset: typeof s.appearance.preset === "string" ? s.appearance.preset : "site", custom: isObj(s.appearance.custom) ? s.appearance.custom : {} }
       : DEFAULT_SETTINGS.appearance,
+    terms: isObj(s.terms)
+      ? {
+          title: isObj(s.terms.title) ? (s.terms.title as Record<string, string>) : {},
+          body: isObj(s.terms.body) ? (s.terms.body as Record<string, string>) : {},
+          updatedAt: typeof s.terms.updatedAt === "string" ? s.terms.updatedAt : undefined,
+        }
+      : DEFAULT_SETTINGS.terms,
     fields: Array.isArray(s.fields) ? (s.fields as Settings["fields"]) : [],
     emailTexts: isObj(s.emailTexts) ? (s.emailTexts as Settings["emailTexts"]) : {},
     notifyEmails: Array.isArray(s.notifyEmails) ? (s.notifyEmails as string[]) : [],

@@ -30,8 +30,8 @@ client's site; the code is shared, and the look, texts, services and rules are s
 ## Quick start (new client site)
 
 ```bash
-npm install github:mazerila/booking-kit#v0.2.0
-npm --prefix functions install github:mazerila/booking-kit#v0.2.0
+npm install github:mazerila/booking-kit#v0.3.0
+npm --prefix functions install github:mazerila/booking-kit#v0.3.0
 ```
 
 ```tsx

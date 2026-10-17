@@ -14,7 +14,7 @@ page, in French and English (source: `src/admin/help.ts`).
 6. [Texts and languages](#6-texts-and-languages)
 7. [Form questions](#7-form-questions)
 8. [Seed file](#8-seed-file)
-9. [Calendars](#9-calendars)
+9. [Calendars](#9-calendars) · [General terms](#general-terms)
 10. [E-mails](#10-e-mails)
 11. [Data model and security](#11-data-model-and-security)
 12. [HTTP API](#12-http-api)
@@ -54,7 +54,7 @@ Package entry points:
 
 | Import | Contents |
 |---|---|
-| `@mazerila/booking-kit/react` | `BookingWidget`, `ManageBooking`, `createApi`, `BOOKING_TEXTS`, `themeStyle`, types |
+| `@mazerila/booking-kit/react` | `BookingWidget`, `ManageBooking`, `BookingTerms`, `createApi`, `BOOKING_TEXTS`, `themeStyle`, types |
 | `@mazerila/booking-kit/admin` | `AdminApp`, `ADMIN_TEXTS`, `HELP`, types |
 | `@mazerila/booking-kit/functions` | `createBookingFunctions`, `createApiHandler`, `runScheduledJobs`, `frenchGeocoder` |
 | `@mazerila/booking-kit/core` | types, slot engine, time-zone helpers, e-mail rendering, .ics, themes |
@@ -103,8 +103,8 @@ put the `/api/booking/**` rule **before** it: Hosting uses the first match.
 ### 2.3 Install
 
 ```bash
-npm install github:mazerila/booking-kit#v0.2.0
-npm --prefix functions install github:mazerila/booking-kit#v0.2.0
+npm install github:mazerila/booking-kit#v0.3.0
+npm --prefix functions install github:mazerila/booking-kit#v0.3.0
 ```
 
 Installing from git runs the package's `prepare` script, which builds `dist/`, so the first
@@ -232,6 +232,15 @@ request when the zone policy says so.
 | `locale` | string | the booking's locale | |
 | `theme`, `useAdminTheme`, `loadFonts`, `texts`, `className` | | | as above |
 | `bookUrl` | string | — | "Book another appointment" after a cancellation |
+
+### `<BookingTerms />`
+
+The general terms as a page of the site, with the same text as the pop-up in the booking form.
+Useful when the site's footer should link to `/cgv/`.
+
+```tsx
+<BookingTerms locale="fr" />   // props: apiBase, locale, theme, useAdminTheme, loadFonts, texts, showTitle, className
+```
 
 ### `<AdminApp />`
 
@@ -408,7 +417,8 @@ or in the seed file:
   `number` (`min`, `max`), `date`, `email` or `tel`. `maxLength` is optional.
 - **`serviceIds` / `categoryIds`:** only ask for these services or categories.
 - **A required `checkbox` is a consent.** Labels support `[text](/url/)` links (only relative,
-  http(s) and mailto links are rendered).
+  http(s), mailto and `#` links are rendered). The special link `[conditions générales](#terms)`
+  opens the [general terms](#general-terms) in a pop-up instead of leaving the page.
 - Answers are validated on both sides (`validateFields` in `core/fields.ts`). They are stored in
   `booking.fields`, and shown in the admin, the provider's e-mails and the calendar feed.
 - Name, e-mail and phone are always asked and are not part of `fields`.
@@ -437,7 +447,8 @@ Read by `scripts/setup-client.ts`. All keys are optional; missing settings take 
     "reminders": { "enabled": true, "hoursBefore": 24 },
     "notifyEmails": ["owner@example.fr"],
     "fields": [ /* §7 */ ],
-    "appearance": { "preset": "rose", "custom": {} }
+    "appearance": { "preset": "rose", "custom": {} },
+    "terms": { "title": {}, "body": {} }                         // empty = default model; or your text per locale
   },
   "weekly": { "mon": [{ "start": "09:00", "end": "12:30" }, { "start": "14:00", "end": "19:00" }], "sun": [] },
   "categories": [{ "id": "body", "name": { "fr": "Corps", "en": "Body" } }],
@@ -483,6 +494,38 @@ because `serviceId` props use them.
 Builders are in `src/core/ics.ts` (`buildIcs`, `buildCalendar`, `googleCalendarUrl`,
 `outlookCalendarUrl`) and `src/core/calendar.ts` (`appointmentEvent`, `providerEvent`).
 
+### General terms
+
+- **Storage:** `Settings.terms = { title, body, updatedAt }`, per locale. An empty text means the
+  **default model** (`DEFAULT_TERMS_BODY` in `src/core/terms.ts`, French and English).
+- **What the model covers:** booking, prices with payment on site, client
+  cancellation/changes (uses `policies.changeUntilHours`), provider cancellation, lateness, the
+  service and health information, home visits, the 14-day withdrawal right, personal data,
+  mediation, and French law.
+- **What still needs filling in:** the consumer mediator (a placeholder in brackets). The admin
+  warns while it is not completed. The model is a starting point, not legal advice.
+- **Placeholders**, filled when displayed: `{business} {address} {email} {phone}
+  {changeUntilHours} {updated}`.
+- **`resolveTerms(settings)`** returns the display text per locale, served in `/config` as
+  `terms: { title, body, version }`.
+- **Text format:**
+  - paragraphs separated by blank lines
+  - `## ` headings
+  - `- ` lists
+  - `**bold**` and `[links](url)`
+  
+  Parsed by `richBlocks` / `inlineParts`, rendered by `RichBody`.
+- **Where it shows:**
+  - The consent checkbox links to `#terms`, which opens a `<dialog>` from the widget.
+  - `<BookingTerms />` renders it as a page.
+  - The admin edits it in Settings → Terms and conditions: default or own text per locale,
+    "copy the model to edit", preview, back to default. If no checkbox links to `#terms`, a
+    button adds it.
+- **Versioning:** every booking stores `termsVersion` (the terms' `updatedAt` at booking time,
+  or `"default-1"`). `updatedAt` changes when the provider saves a different title or text.
+- **Other countries:** override the default by writing the text in the admin (or the seed), or
+  change `DEFAULT_TERMS_BODY` for every site.
+
 ---
 
 ## 10. E-mails
@@ -521,7 +564,7 @@ Builders are in `src/core/ics.ts` (`buildIcs`, `buildCalendar`, `googleCalendarU
 | `services/{id}`, `categories/{id}` | | admin |
 | `exceptions/{date}` | special days | admin |
 | `blocks/{id}` | blocked time | admin |
-| `bookings/{id}` | `Booking` | API only (admins may edit `notes`) |
+| `bookings/{id}` | `Booking` (incl. `termsVersion`) | API only (admins may edit `notes`) |
 | `clients/{id}` | `Client`, keyed by a hash of e-mail/phone | API (+ admin notes) |
 | `bookingLocks/{date}` | transaction lock per day | API only |
 | `mailLog/{id}` | e-mail attempts | API only |
